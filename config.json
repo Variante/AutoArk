@@ -1,0 +1,94 @@
+{
+    "name": "明日方舟 - MuMu模拟器",
+    "comment": "修改adb_shape为实际的模拟器大小，adb_init_cmd为相应模拟器的连接命令，name是窗口名称，如果没有准确匹配的名称会搜索包含的name的窗口。padding是计算比例之前扣除的像素数量，形式top,bottom,left,right。stick是自动贴合主窗口，设置为空队列即不贴合。",
+    "padding": [36, 53, 0, 0],
+    "scale": 0.4,
+	"match_width": 360,
+    "stick": ["left", "top,height"],
+    "adb_shape": [2560, 1440],
+    "adb_init_cmd": "connect 127.0.0.1:7555",
+    "display_fps": 5,
+    "check_fps": 0.5,
+    "repeat": -1,
+    "data": [
+        {
+            "file": "select.png",
+            "area": [0.814, 0.811, 0.973, 0.957],
+            "thre": 0.60,
+            "comment": "选图开始",
+            "enable": true,
+            "action": [0.817, 0.877, 0.966, 0.931]
+        },
+		{
+            "file": "select2.png",
+            "area": [0.831, 0.76, 0.965, 0.90],
+            "thre": 0.60,
+            "comment": "愚人号选图开始",
+            "enable": false,
+            "action": [0.831, 0.86, 0.965, 0.90]
+        },
+        {
+            "file": "start.png",
+            "area": [0.81, 0.53, 0.90, 0.88],
+            "thre": 0.80,
+            "comment": "开始行动",
+            "enable": true,
+            "action": [0.817, 0.530, 0.90, 0.88]
+        },
+        {
+            "file": "stone.png",
+            "area": [0.584, 0.755, 0.876, 0.851],
+            "thre": 0.50,
+            "comment": "不嗑药",
+            "enable": false,
+            "action": [0.59, 0.76, 0.63, 0.85]
+        },
+        {
+            "file": "stone.png",
+            "area": [0.55, 0.31, 0.70, 0.60],
+            "thre": 0.50,
+            "comment": "不碎石",
+            "enable": true,
+            "action": [0.59, 0.76, 0.63, 0.85]
+        },
+        {
+            "file": "stone.png",
+            "area": [0.584, 0.755, 0.876, 0.851],
+            "thre": 0.50,
+            "comment": "碎石/嗑药",
+            "enable": true,
+			"count": -1,
+            "action": [0.82, 0.76, 0.966, 0.85]
+        },
+		{
+            "file": "empty.png",
+            "area": [0.68, 0.34, 0.82, 0.68],
+            "thre": 0.50,
+            "comment": "没石头了",
+            "enable": true,
+            "action": [0.68, 0.34, 0.82, 0.68]
+        },
+        {
+            "file": "done.png",
+            "area": [0.056, 0.40, 0.215, 0.49],
+            "thre": 0.5,
+            "comment": "行动记录",
+            "enable": true,
+            "action": [0.056, 0.40, 0.215, 0.49]
+        },
+        {
+            "file": "friend.png",
+            "area": [0.853, 0.88, 0.990, 0.930],
+            "thre": 0.65,
+            "comment": "访问好友",
+            "enable": true,
+            "action": [0.853, 0.88, 0.990, 0.930]
+        }
+    ],
+    "recruitment": {
+        "area": [0.287, 0.484, 0.682, 0.686],
+		"width": 800,
+        "thre": 0.75
+    }
+}
+

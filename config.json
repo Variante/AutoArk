@@ -6,7 +6,8 @@
 	"match_width": 360,
     "stick": ["left", "top,height"],
     "adb_shape": [2560, 1440],
-    "adb_init_cmd": "connect 127.0.0.1:7555",
+    "adb_ip": "127.0.0.1",
+	"adb_port": 7555,
     "display_fps": 5,
     "check_fps": 0.5,
     "repeat": -1,
@@ -48,7 +49,7 @@
             "area": [0.55, 0.31, 0.70, 0.60],
             "thre": 0.50,
             "comment": "不碎石",
-            "enable": true,
+            "enable": false,
             "action": [0.59, 0.76, 0.63, 0.85]
         },
         {
@@ -79,7 +80,7 @@
         {
             "file": "friend.png",
             "area": [0.853, 0.88, 0.990, 0.930],
-            "thre": 0.65,
+            "thre": 0.55,
             "comment": "访问好友",
             "enable": true,
             "action": [0.853, 0.88, 0.990, 0.930]

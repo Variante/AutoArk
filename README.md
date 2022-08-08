@@ -7,7 +7,7 @@ I will not recommend this game even I'm playing it... Just save your money and t
 
 ## 安装
 ```
-pip install mss pillow numpy opencv-python pywin32 wexpect
+pip install mss pillow numpy opencv-python pywin32 adb-shell
 ```
 
 ## 使用方法

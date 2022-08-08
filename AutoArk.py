@@ -4,13 +4,13 @@ from util import *
 from tkinter import *
 import tkinter.font as tkFont
 from PIL import Image, ImageDraw, ImageFont, ImageTk
+from adb_shell.adb_device import AdbDeviceTcp
 from itertools import combinations
 import numpy as np
 import cv2
 from datetime import datetime
 import threading
 import random
-import wexpect
 import time
 
 
@@ -185,11 +185,9 @@ class TagDetector:
 
 class GameManager:
     def __init__(self, config):
-        self.adb = './adb/adb.exe'
-        pipe = wexpect.spawn(self.adb + ' ' + config['adb_init_cmd'])
-        pipe.expect(['connected', wexpect.EOF])
         # 链接shell
-        self.shell_pipe = wexpect.spawn(self.adb + ' shell')
+        self.shell_pipe = AdbDeviceTcp(config['adb_ip'], config['adb_port'], default_transport_timeout_s=9.)
+        self.shell_pipe.connect()
         
         # roc.set_boot_state()
         self.check_interval = 1 / config['check_fps']
@@ -200,7 +198,7 @@ class GameManager:
         self.src_img = None
         self.text = "加载中……"
         self.bbox = {"pt": []}
-        self.repeat = -1
+        self.repeat = 0
         if "repeat" in config:
             self.repeat = config["repeat"]
         self.pause_game = False
@@ -224,7 +222,7 @@ class GameManager:
         return 0
         
     def _adb_send_cmd(self, cmd):
-        self.shell_pipe.sendline(' '.join(cmd))
+        self.shell_pipe.shell(' '.join(cmd))
     
     # 点击一个区域
     def screen_mouse_touch_area(self, rect):

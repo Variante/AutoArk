@@ -282,7 +282,8 @@ class GameManager:
                         src_c = cv2.resize(get_patch(src, area), (tgt.shape[1], tgt.shape[0]))
                         
                         # print(tgt.shape, src_c.shape)
-
+                        # cv2.imshow(name, np.hstack([src_c, tgt]))
+                        # cv2.waitKey(1)
                         res = cv2.matchTemplate(src_c, tgt, cv2.TM_CCOEFF_NORMED)
                         val = np.max(res)
                         

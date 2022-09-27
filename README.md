@@ -13,11 +13,11 @@ pip install mss pillow numpy opencv-python pywin32 adb-shell
 ## 使用方法
 首先根据模拟器渲染分辨率调整config.json文件中的adb_shape等其它各类参数，然后打开模拟器后运行AutoArk.py即可。
 ```
-空格:暂停
+空格/P:暂停
 R:读取当前配置
 S:保存图片
-P:暂停自动
 计数功能:在config中判定到特定指令可以调整count值，用来控制执行这个动作的次数。
+Q:退出
 ```
 
 ## 声明

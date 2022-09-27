@@ -54,9 +54,10 @@ class TagDetector:
                 
         self.dbs = dbs
         self.tags = list(dbs.keys())
+        print("Keys: ", self.tags)
         print("公招数据库加载完毕.")
         # print("Dbs: ", self.dbs)
-        print("Keys: ", self.tags)
+        
 
 
     def query_tag(self, tag, src):
@@ -381,12 +382,14 @@ def main(cfg):
     def onKeyPress(event):
         nonlocal save_img
         # print(event)
-        if event.char in 'rR':
+        if event.keysym in 'rR':
             cfg = load_cfg()
             gm.set_config(cfg)
-        if event.char in 'sS':
+        elif event.keysym in 'qQ':
+            root.quit()
+        elif event.keysym in 'sS':
             save_img = True
-        if event.char in 'pP':
+        elif event.keysym in 'pP' or event.keycode == 32:
             gm.pause_game = ~gm.pause_game
             if gm.pause_game:
                 gm.text = "已暂停"
@@ -503,7 +506,7 @@ def main(cfg):
 
 
 def usage():
-    print("AutoArk操作说明:\n空格/P:暂停自动\nS:保存当前截图\nR:重新加载配置\n检测到公招Tag后会自动输出方案\n" + '-'*8)
+    print("AutoArk操作说明:\n空格/P:暂停自动\nS:保存当前截图\nR:重新加载配置\nQ:退出\n检测到公招Tag后会自动输出方案\n" + '-'*8)
 
 
 if __name__ == '__main__':

@@ -31,7 +31,7 @@
         {
             "file": "start.png",
             "area": [0.81, 0.53, 0.90, 0.88],
-            "thre": 0.80,
+            "thre": 0.60,
             "comment": "开始行动",
             "enable": true,
             "action": [0.817, 0.530, 0.90, 0.88]

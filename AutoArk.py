@@ -26,8 +26,7 @@ class TagDetector:
     def load_db(self):
         # load DB
         with open('./res/opt.txt', 'r', encoding="utf-8") as f:
-            db = f.read()
-        opts = db.split('\n')
+            opts = f.readlines()
         dbs = {}
         
         def add_to_dbs(ts):
@@ -48,7 +47,9 @@ class TagDetector:
 
 
         for opt in opts:
-            ts = opt.split()
+            if len(opt) < 2 or opt.startswith('#'):
+                continue
+            ts = opt.strip().split()
             if len(ts) > 2:
                 add_to_dbs(ts)
                 

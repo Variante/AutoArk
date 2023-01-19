@@ -25,13 +25,15 @@ def get_possible_window_name(name="明日方舟"):
     print('-' * 8)
     return possible_hwnd
     
-    
-def crop_image_by_pts(img, pts):
+def get_size_by_pts(img, pts):
     h, w = img.shape[:2]
     h1, h2 = int(pts[1] * h), int(pts[3] * h)
     w1, w2 = int(pts[0] * w), int(pts[2] * w)
+    return w1, h1, w2, h2
+    
+def crop_image_by_pts(img, pts):
+    w1, h1, w2, h2 = get_size_by_pts(img, pts)
     return img[h1:h2, w1:w2]
-
 
 def get_window_roi(name, pos, padding):
     x1, y1, x2, y2 = pos
@@ -68,7 +70,7 @@ if __name__ == '__main__':
     imgs = glob.glob('img/*.png')
     
     for i in imgs:
-        img = cv.imread(i, 0)
+        img = cv.imread(i)
         if img.shape[1] > 1024:
             print(f"Process {i}")
             img = cv.resize(img, (1024, 576))

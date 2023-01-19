@@ -199,7 +199,7 @@ class GameManager:
         self.run = True
         self.src_img = None
         self.text = "加载中……"
-        self.bbox = {"pt": []}
+        self.bbox = {"pt": [], "bb": []}
         self.repeat = 0
         if "repeat" in config:
             self.repeat = config["repeat"]
@@ -247,7 +247,8 @@ class GameManager:
         self.img_dict = {}
         for item in self.cfg['data']:
             name = item['file']
-            img = cv2.imread('./img/' + name, 0)
+            img = cv2.imread('./img/' + name)
+
             w = self.cfg['match_width']
             h = int(w * img.shape[0] / img.shape[1])
             img = cv2.resize(img, (w, h))
@@ -256,7 +257,7 @@ class GameManager:
     
     
     def check_loop(self):
-        time.sleep(1)
+        time.sleep(0.3)
         while self.run:
             if self.pause_game:
                 # self.text = "已暂停"
@@ -264,67 +265,65 @@ class GameManager:
             if self.src_img is not None:
                 src = self.src_img.copy()
                 text_list = []
+                self.bbox['bb'] = []
                 
-                do_action = False
+                def expand_pts(pts, ext=0.01):
+                    return [ j + ext * (-1 if i < 2 else 1) for i, j in enumerate(pts)]
+                
+                do_action = None
                 for item in self.cfg['data']:
+                    if not item['enable']:
+                        continue
                     name = item['file']
                     tgt = self.img_dict[name]
+                    name = item.get('comment', name)
                     thre = item['thre']
                     action = item['action']
                     area = item['area']
-                    if 'comment' in item:
-                        name = item['comment']
-                    if item['enable']:
-                    
-                        def get_patch(img, area):
-                            h, w = img.shape[:2]
-                            return img[int(h * area[1]): int(h * area[3]), int(w * area[0]): int(w * area[2])]
-                        
-                        tgt = get_patch(tgt, area)
-                        src_c = cv2.resize(get_patch(src, area), (tgt.shape[1], tgt.shape[0]))
-                        
-                        # print(tgt.shape, src_c.shape)
-                        # cv2.imshow(name, np.hstack([src_c, tgt]))
-                        # cv2.waitKey(1)
-                        res = cv2.matchTemplate(src_c, tgt, cv2.TM_CCOEFF_NORMED)
-                        val = np.max(res)
-                        
-                        
-                        # print("Check " + name, val, thre)
-                        tmp_text = f"{name}: {val:.2f}({thre:.2f})"
-                        
-                        if 'count' in item:
-                            tmp_text += f"[{item['count']}]"
-                            if self.repeat == 0: # skip this action
-                                text_list.append(tmp_text + ' X')
-                                continue
-                            repeat_dif = item['count']
-                        else:
-                            repeat_dif = 0
+                    search_area = item.get('search_area', expand_pts(area))
+                    chn = item.get('chn', 2) # channel
 
-                        if val > thre and not do_action:
-                            # cv2.imshow(name, src_c)
-                            # cv2.waitKey(10)
-                            # print(name, "checked")
+                    w1, h1, w2, h2 = get_size_by_pts(tgt, area)
+                    tgt_c = crop_image_by_pts(tgt, search_area)
+                    if len(tgt.shape) > 2:
+                        tgt_c = tgt_c[:, :, chn]
+                        
+                    src_c = cv2.resize(crop_image_by_pts(src[:, :, chn], area), (w2 - w1, h2 - h1))
+                    res = cv2.matchTemplate(src_c, tgt_c, cv2.TM_CCOEFF_NORMED)
+                    val = np.max(res)
+                    # print("Check " + name, val, thre)
+                    tmp_text = f"{name}: {val:.2f}({thre:.2f})"
+                    
+                    repeat_diff = item.get('count', 0)
+                    if repeat_diff > 0:
+                        tmp_text += f"[{repeat_diff}]"
+                        if self.repeat == 0: # skip this action
+                            text_list.append(tmp_text + ' X')
+                            val = 0
+                        
+                    color = (0, 0, 255)
+                    if val > thre:
+                        color = (0, 255, 255)
+                        if do_action is None:
+                            color = (0, 255, 0)
                             tmp_text += " √"
-                            self.screen_mouse_touch_area(item['action'])
-                            do_action = True
-                            if self.repeat >= 0:
-                                self.repeat += repeat_dif
-                            
-                        text_list.append(tmp_text)
-                    """
-                    else:
-                        text_list.append(f"{name}: disabled ({thre:.2f})")
-                    """
+                            do_action = action
+                            self.repeat += repeat_diff
+                                
+                    text_list.append(tmp_text)
+                    self.bbox['bb'].append((search_area, (128, 0, 0)))
+                    self.bbox['bb'].append((area, color))
                 self.text = '\n'.join(text_list)
                 
-                if not do_action:
+                # do action
+                if do_action:
+                    self.screen_mouse_touch_area(do_action)
+                else:
                     self.bbox["pt"] = []
             else:
-                self.text = "Image Not Found"
+                self.text = "未找到窗口"
                 self.bbox["pt"] = []
-                # print('-' * 9)
+                self.bbox['bb'] = []
             time.sleep(self.check_interval)
             
     
@@ -455,8 +454,9 @@ def main(cfg):
                     root.geometry(f"+{get_stick(cfg['stick'][0], full_win)}+{get_stick(cfg['stick'][1], full_win)}")
                 img = np.array(m.grab(win_info))
                 
+                img_c = img.copy()
                 # ArkQuery
-                tag_query = crop_image_by_pts(img[:, :, 2], cfg['recruitment']['area'])
+                tag_query = crop_image_by_pts(img_c[:, :, 2], cfg['recruitment']['area'])
                 pil_img = Image.fromarray(tag_query)
                 results = td.check_tags(tag_query.copy())
                 if results[3] > 0: # 存在tag组合
@@ -469,12 +469,18 @@ def main(cfg):
                     
                 else:
                     # AutoArk
-                    results = gm.check_img(img[:, :, 2])
+                    results = gm.check_img(img_c)
                     """
                     draw vis
                     """
                     for pt in gm.bbox["pt"]:
                         img = cv2.circle(img, pt, 5, (0, 0, 255), -1)
+                        
+                    h, w = img.shape[:2]
+                    for pts, color in gm.bbox['bb']:
+                        h1, h2 = int(pts[1] * h), int(pts[3] * h)
+                        w1, w2 = int(pts[0] * w), int(pts[2] * w)
+                        img = cv2.rectangle(img, (w1, h1), (w2, h2), color, 1)
 
                     ldtag1.configure(text=gm.get_repeat())
                     ldtag.configure(text='')
@@ -490,7 +496,7 @@ def main(cfg):
                 if save_img:
                     now = datetime.now()
                     date_time = now.strftime("./%H-%M-%S")
-                    Image.fromarray(img[:, :, 2]).save(date_time + ".png")
+                    cv2.imwrite(date_time + ".png", img_c)
                     save_img = False
                 
                     

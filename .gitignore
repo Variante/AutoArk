@@ -6,4 +6,4 @@ wexpect/*
 *.zip
 *.exe
 *.bak
-*.png
+./*.png

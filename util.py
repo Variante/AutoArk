@@ -9,21 +9,23 @@ def load_cfg():
         cfg = json.loads(content)
         return cfg
 
-
-def get_possible_window_name(name="明日方舟"):
-    print("Search for the window whose name contains", name)
-    possible_hwnd = None
+def get_handle_by_name(handle, name="明日方舟"):
+    # if old handle is working
+    if handle is not None and handle > 0 and win32gui.IsWindowVisible(handle):
+        return handle
+    # find handle by name
+    handle = None
     def winEnumHandler(hwnd, ctx):
-        nonlocal possible_hwnd
+        nonlocal handle
         if win32gui.IsWindowVisible(hwnd):
             win_name = win32gui.GetWindowText(hwnd)
             if name in win_name:
-                possible_hwnd = hwnd
+                handle = hwnd
+                print('Use name: ', win_name)
     win32gui.EnumWindows(winEnumHandler, None)
-    if possible_hwnd is None:
-        print("Window not found")
-    print('-' * 8)
-    return possible_hwnd
+    if handle is None:
+        print("Window not found", end='\r')
+    return handle
     
 def get_size_by_pts(img, pts):
     h, w = img.shape[:2]
@@ -35,20 +37,14 @@ def crop_image_by_pts(img, pts):
     w1, h1, w2, h2 = get_size_by_pts(img, pts)
     return img[h1:h2, w1:w2]
 
-def get_window_roi(name, pos, padding):
-    x1, y1, x2, y2 = pos
-    ptop, pdown, pleft, pright = padding
-    handle = win32gui.FindWindow(0, name)
-    # print(handle)
-    # handle = 0xd0ea6
-    if not handle:
-        print("Can't not find " + name)
-        handle = get_possible_window_name()
-
+def get_window_roi(handle, pos, padding):
     if handle is None:
         return {'top': -1, 'left': -1, 'width': 100, 'height': 100}
-        
+
     window_rect = win32gui.GetWindowRect(handle)
+    
+    x1, y1, x2, y2 = pos
+    ptop, pdown, pleft, pright = padding
     
     w = window_rect[2] - window_rect[0] - pleft - pright
     h = window_rect[3] - window_rect[1] - ptop - pdown
@@ -59,9 +55,8 @@ def get_window_roi(name, pos, padding):
         'width': int((x2 - x1) * w),
         'height': int((y2 - y1) * h)
     }
-    
     return window_dict
-    
+
     
 if __name__ == '__main__':
     print("Resize images")

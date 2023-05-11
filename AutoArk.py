@@ -416,41 +416,24 @@ def main(cfg):
     
     img_cache = None
     img_diff_count = 0
-    
-    def check_img_diff(img):
-        nonlocal img_diff_count
-        if img_cache is None:
-            return True
-        # print(img.shape, img_cache.shape)
-        if img.shape != img_cache.shape:
-            # print(img.shape, img_cache.shape)
-            return True
-            
-        p_diff = np.sum((img.astype(np.float32) - img_cache.astype(np.float32)) != 0)
-        if p_diff > 10000:
-            if img_diff_count < cfg['display_fps'] / 5:
-                img_diff_count += 1
-                return False
-            else:
-                img_diff_count = 0
-                return True
-        else:
-            img_diff_count = 0
-            return False
+    win_handle = None
     
     with mss.mss() as m:
         def capture_stream():
             nonlocal save_img
             nonlocal img_cache
-            win_info = get_window_roi(target_name, [0, 0, 1, 1], cfg['padding'])
+            nonlocal win_handle
+            win_handle = get_handle_by_name(win_handle, target_name)
+            win_info = get_window_roi(win_handle, [0, 0, 1, 1], cfg['padding'])
             if win_info['left'] < 0 and win_info['top'] < 0:
                 ldtag1.configure(text='未检测到窗口')
                 ldtag.configure(text='')
                 ldres.configure(text='')
                 img_cache = None
+                lmain.after(1000, capture_stream) 
             else:
-                full_win = get_window_roi(target_name,[0, 0, 1, 1], [0, 0, 0, 0])
                 if len(cfg['stick']) == 2:
+                    full_win = get_window_roi(win_handle, [0, 0, 1, 1], [0, 0, 0, 0])
                     root.geometry(f"+{get_stick(cfg['stick'][0], full_win)}+{get_stick(cfg['stick'][1], full_win)}")
                 img = np.array(m.grab(win_info))
                 
@@ -504,7 +487,7 @@ def main(cfg):
                 imgtk = ImageTk.PhotoImage(image=pil_img)
                 lmain.imgtk = imgtk
                 lmain.configure(image=imgtk)
-            lmain.after(display_interval, capture_stream) 
+                lmain.after(display_interval, capture_stream) 
 
         capture_stream()
         root.mainloop()

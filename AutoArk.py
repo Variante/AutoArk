@@ -309,6 +309,7 @@ class GameManager:
                             tmp_text += " √"
                             do_action = action
                             self.repeat += repeat_diff
+                            self.bbox['bb'].append((do_action, color))
                                 
                     text_list.append(tmp_text)
                     self.bbox['bb'].append((search_area, (128, 0, 0)))

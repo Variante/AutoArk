@@ -416,7 +416,6 @@ def main(cfg):
     display_interval = int(1000 / cfg['display_fps'])
     
     img_cache = None
-    img_diff_count = 0
     win_handle = None
     
     with mss.mss() as m:

@@ -1,5 +1,4 @@
 # -*- coding:utf-8 -*-
-import mss
 from util import *
 from tkinter import *
 import tkinter.font as tkFont
@@ -12,6 +11,7 @@ from datetime import datetime
 import threading
 import random
 import time
+import traceback
 
 
 class TagDetector:
@@ -217,18 +217,27 @@ class GameManager:
             return f"循环：还有{self.repeat:d}次"
         
     def adb_capture_screen(self):
-        # response = self.shell_pipe.shell('screencap /mnt/sdcard/DCIM/test.png')
-        # print(self.shell_pipe.shell('ls -al /mnt/sdcard/DCIM'))
-        # response = self.shell_pipe.pull('/mnt/sdcard/DCIM/test.png', 'test.png')
-        # print(response)
         try:
-            response = self.shell_pipe.shell("screencap -p", decode=False)
-            buf = np.asarray(bytearray(response))
-            img = cv2.imdecode(buf, cv2.IMREAD_COLOR)
+            if True:
+                # decode raw pixels
+                response = self.shell_pipe.shell('screencap', decode=False)
+                byte_width = 4
+                assert response[byte_width * 2] == 0x01 # pixel format RGBA
+                w = int.from_bytes(response[:byte_width], "little")
+                h = int.from_bytes(response[byte_width:byte_width*2], "little")
+                img = np.frombuffer(response, dtype=np.uint8, count=w*h*4, offset=3 * byte_width).reshape(h, w, 4)
+                self.adb_shape = (w, h)
+                return np.ascontiguousarray(img[:, :, :3][:, :, ::-1])
+            else:
+                # decode png image
+                response = self.shell_pipe.shell("screencap -p", decode=False)
+                buf = np.asarray(bytearray(response))
+                img = cv2.imdecode(buf, cv2.IMREAD_COLOR)
             if img is not None:
                 self.adb_shape = (img.shape[1], img.shape[0])
             return img
         except:
+            traceback.print_exc()
             return None
  
     def _adb_send_touch(self, px, py):
@@ -436,6 +445,7 @@ def main(cfg):
     capture_via_adb = cfg['capture_mode'] == 'adb'
     
     if not capture_via_adb:
+        import mss
         # use mss
         m = mss.mss()
     

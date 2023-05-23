@@ -205,6 +205,7 @@ class GameManager:
             self.repeat = config["repeat"]
         self.pause_game = False
         self.thread = threading.Thread(target=GameManager.check_loop, args=(self,))
+        self.adb_shape = config['adb_shape']
         self.thread.start()
     
     def get_repeat(self):
@@ -214,7 +215,22 @@ class GameManager:
             return "循环结束了"
         else:
             return f"循环：还有{self.repeat:d}次"
-    
+        
+    def adb_capture_screen(self):
+        # response = self.shell_pipe.shell('screencap /mnt/sdcard/DCIM/test.png')
+        # print(self.shell_pipe.shell('ls -al /mnt/sdcard/DCIM'))
+        # response = self.shell_pipe.pull('/mnt/sdcard/DCIM/test.png', 'test.png')
+        # print(response)
+        try:
+            response = self.shell_pipe.shell("screencap -p", decode=False)
+            buf = np.asarray(bytearray(response))
+            img = cv2.imdecode(buf, cv2.IMREAD_COLOR)
+            if img is not None:
+                self.adb_shape = (img.shape[1], img.shape[0])
+            return img
+        except:
+            return None
+ 
     def _adb_send_touch(self, px, py):
         cmd = "input tap %d %d" % (px, py)
         # d = random.randint(500, 1500)
@@ -237,8 +253,8 @@ class GameManager:
         px = round(self.src_img.shape[1] * pt[0])
         py = round(self.src_img.shape[0] * pt[1])
         self.bbox["pt"] = [(px, py)]
-        px = round(self.cfg['adb_shape'][0] * pt[0])
-        py = round(self.cfg['adb_shape'][1] * pt[1])
+        px = round(self.adb_shape[0] * pt[0])
+        py = round(self.adb_shape[1] * pt[1])
         
         return self._adb_send_touch(px, py)
     
@@ -417,81 +433,95 @@ def main(cfg):
     
     img_cache = None
     win_handle = None
+    capture_via_adb = cfg['capture_mode'] == 'adb'
     
-    with mss.mss() as m:
-        def capture_stream():
-            nonlocal save_img
-            nonlocal img_cache
-            nonlocal win_handle
-            win_handle = get_handle_by_name(win_handle, target_name)
-            win_info = get_window_roi(win_handle, [0, 0, 1, 1], cfg['padding'])
+    if not capture_via_adb:
+        # use mss
+        m = mss.mss()
+    
+    def capture_stream():
+        nonlocal save_img
+        nonlocal img_cache
+        nonlocal win_handle
+        win_handle = get_handle_by_name(win_handle, target_name)
+        win_info = get_window_roi(win_handle, [0, 0, 1, 1], cfg['padding'])
+ 
+        if capture_via_adb:
+            img = gm.adb_capture_screen()
+            if img is None:
+                ldtag1.configure(text='ADB获取图像失败')
+                ldtag.configure(text='')
+                ldres.configure(text='')
+                img_cache = None
+                lmain.after(1000, capture_stream)
+                return
+        else:
             if win_info['left'] < 0 and win_info['top'] < 0:
                 ldtag1.configure(text='未检测到窗口')
                 ldtag.configure(text='')
                 ldres.configure(text='')
                 img_cache = None
-                lmain.after(1000, capture_stream) 
-            else:
-                if len(cfg['stick']) == 2:
-                    full_win = get_window_roi(win_handle, [0, 0, 1, 1], [0, 0, 0, 0])
-                    root.geometry(f"+{get_stick(cfg['stick'][0], full_win)}+{get_stick(cfg['stick'][1], full_win)}")
-                img = np.array(m.grab(win_info))
-                
-                img_c = img.copy()
-                # ArkQuery
-                tag_query = crop_image_by_pts(img_c[:, :, 2], cfg['recruitment']['area'])
-                pil_img = Image.fromarray(tag_query)
-                results = td.check_tags(tag_query.copy())
-                if results[3] > 0: # 存在tag组合
-                    imgtk = ImageTk.PhotoImage(image=pil_img)
-                    lmain.imgtk = imgtk
-                    lmain.configure(image=imgtk)
-                    ldtag1.configure(text=results[0])
-                    ldtag.configure(text=results[1])
-                    ldres.configure(text=results[2])
-                    
-                else:
-                    # AutoArk
-                    results = gm.check_img(img_c)
-                    """
-                    draw vis
-                    """
-                    for pt in gm.bbox["pt"]:
-                        img = cv2.circle(img, pt, 5, (0, 0, 255), -1)
-                        
-                    h, w = img.shape[:2]
-                    for pts, color in gm.bbox['bb']:
-                        h1, h2 = int(pts[1] * h), int(pts[3] * h)
-                        w1, w2 = int(pts[0] * w), int(pts[2] * w)
-                        img = cv2.rectangle(img, (w1, h1), (w2, h2), color, 1)
-
-                    ldtag1.configure(text=gm.get_repeat())
-                    ldtag.configure(text='')
-                    ldres.configure(text=gm.text)
-                    
-                    pil_img = Image.fromarray(img[:, :, :3][:, :, ::-1])
-                    if scale > 0:
-                        pil_img = pil_img.resize((int(pil_img.size[0] * scale), int(pil_img.size[1] * scale)))
-                        imgtk = ImageTk.PhotoImage(image=pil_img)
-                        lmain.imgtk = imgtk
-                        lmain.configure(image=imgtk)
-                        
-                if save_img:
-                    now = datetime.now()
-                    date_time = now.strftime("./%H-%M-%S")
-                    cv2.imwrite(date_time + ".png", img_c)
-                    save_img = False
-                
-                    
-                # update the display
-                imgtk = ImageTk.PhotoImage(image=pil_img)
-                lmain.imgtk = imgtk
-                lmain.configure(image=imgtk)
-                lmain.after(display_interval, capture_stream) 
-
-        capture_stream()
-        root.mainloop()
+                lmain.after(1000, capture_stream)
+                return
+            img = np.array(m.grab(win_info))
         
+        if len(cfg['stick']) == 2 and win_info['left'] >= 0 and win_info['top'] >= 0:
+            full_win = get_window_roi(win_handle, [0, 0, 1, 1], [0, 0, 0, 0])
+            root.geometry(f"+{get_stick(cfg['stick'][0], full_win)}+{get_stick(cfg['stick'][1], full_win)}")
+
+        img_c = img.copy()
+        # ArkQuery
+        tag_query = crop_image_by_pts(img_c[:, :, 2], cfg['recruitment']['area'])
+        pil_img = Image.fromarray(tag_query)
+        results = td.check_tags(tag_query.copy())
+        if results[3] > 0: # 存在tag组合
+            imgtk = ImageTk.PhotoImage(image=pil_img)
+            lmain.imgtk = imgtk
+            lmain.configure(image=imgtk)
+            ldtag1.configure(text=results[0])
+            ldtag.configure(text=results[1])
+            ldres.configure(text=results[2])
+            
+        else:
+            # AutoArk
+            results = gm.check_img(img_c)
+            """
+            draw vis
+            """
+            for pt in gm.bbox["pt"]:
+                img = cv2.circle(img, pt, 5, (0, 0, 255), -1)
+                
+            h, w = img.shape[:2]
+            for pts, color in gm.bbox['bb']:
+                h1, h2 = int(pts[1] * h), int(pts[3] * h)
+                w1, w2 = int(pts[0] * w), int(pts[2] * w)
+                img = cv2.rectangle(img, (w1, h1), (w2, h2), color, 1)
+
+            ldtag1.configure(text=gm.get_repeat())
+            ldtag.configure(text='')
+            ldres.configure(text=gm.text)
+            
+            pil_img = Image.fromarray(img[:, :, :3][:, :, ::-1])
+            if scale > 0:
+                pil_img = pil_img.resize((int(pil_img.size[0] * scale), int(pil_img.size[1] * scale)))
+                
+        if save_img:
+            now = datetime.now()
+            date_time = now.strftime("./%H-%M-%S")
+            cv2.imwrite(date_time + ".png", img_c)
+            save_img = False
+
+        # update the display
+        imgtk = ImageTk.PhotoImage(image=pil_img)
+        lmain.imgtk = imgtk
+        lmain.configure(image=imgtk)
+        lmain.after(display_interval, capture_stream) 
+
+    capture_stream()
+    root.mainloop()
+    
+    if not capture_via_adb:
+        m.close()
     gm.close()
 
 

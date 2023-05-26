@@ -207,6 +207,9 @@ class GameManager:
         self.thread = threading.Thread(target=GameManager.check_loop, args=(self,))
         self.adb_shape = config['adb_shape']
         self.thread.start()
+        
+    def update_shape(self, scale):
+        return int(self.adb_shape[0] * scale), int(self.adb_shape[1] * scale)
     
     def get_repeat(self):
         if self.repeat < 0:
@@ -371,6 +374,9 @@ class GameManager:
         
 
 def main(cfg):
+    gm = GameManager(cfg)
+    td = TagDetector(cfg['recruitment']['thre'])
+    
     # Windows
     root = Tk()
     # Create a frame
@@ -393,10 +399,6 @@ def main(cfg):
     root.title('AutoArk')
     # root.geometry('1300x760')
     target_name = cfg['name']
-    td = TagDetector(cfg['recruitment']['thre'])
-    gm = GameManager(cfg)
-    scale = cfg['scale']
-
     save_img = False
     
     def fresh_repeat():
@@ -512,8 +514,8 @@ def main(cfg):
             ldres.configure(text=gm.text)
             
             pil_img = Image.fromarray(img[:, :, :3][:, :, ::-1])
-            if scale > 0:
-                pil_img = pil_img.resize((int(pil_img.size[0] * scale), int(pil_img.size[1] * scale)))
+            if cfg['scale'] > 0:
+                pil_img = pil_img.resize(gm.update_shape(cfg['scale']))
                 
         if save_img:
             now = datetime.now()

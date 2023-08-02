@@ -16,7 +16,7 @@
         {
             "file": "select.png",
             "area": [0.813, 0.811, 0.973, 0.948],
-            "thre": 0.9,
+            "thre": 0.88,
             "comment": "选图开始",
 			"chn": 0,
             "enable": true,
